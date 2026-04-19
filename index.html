@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sala de Conversação Nível A2 - TALKING ENGLISH</title>
+    <!-- Carrega Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; 
+        }
+        .chat-container {
+            max-width: 700px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .message-bubble {
+            max-width: 85%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+        }
+        /* Cores Laranja para IA */
+        .ai-message {
+            background-color: #fff7ed; /* Orange 50 (Very light orange) */
+            color: #7c2d12; /* Orange 900 (Dark brown/orange) */
+            border-bottom-left-radius: 4px;
+        }
+        /* Cores Laranja para Usuário */
+        .user-message {
+            background-color: #f97316; /* Orange 500 (Primary Orange) */
+            color: white;
+            border-bottom-right-radius: 4px;
+            margin-left: auto; /* Alinha à direita */
+        }
+        #chatHistory {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        .input-area {
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #f97316; /* Orange 500 */
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Estilo para o toggle switch (checkbox customizado) */
+        #speechToggle {
+            /* Oculta o checkbox nativo */
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        #speechToggle:checked + .slider {
+            background-color: #f97316; /* Orange 500 */
+        }
+        #speechToggle:checked + .slider:before {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body class="flex justify-center items-center">
+    
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="p-4 bg-orange-600 text-white shadow-lg flex items-center justify-between">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 mr-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75v-7.5m0 0v-7.5m0 7.5l-2.25 2.25M12 11.25l2.25 2.25m-2.25-2.25l-2.25 2.25m2.25-2.25l2.25 2.25" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                </svg>
+                <div>
+                    <h2 class="text-xl font-bold">TALKING ENGLISH</h2>
+                    <!-- Limpeza da descrição. Autoria: Developed By Teacher Deivis@2025 -->
+                    <p class="text-sm opacity-80">Seu ambiente de prática de speaking e listening (A2).</p>
+                </div>
+            </div>
+            
+            <!-- Controle de Fala (TTS Toggle) -->
+            <div class="flex items-center space-x-2">
+                <label for="speechToggle" class="text-sm font-medium">Ouvir Respostas</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="speechToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <div id="chatHistory" class="flex flex-col">
+            <!-- Mensagem de boas-vindas inicial -->
+            <div class="flex">
+                <div class="message-bubble ai-message">
+                    Hello! Welcome to TALKING ENGLISH. I am your tutor, Mr. Deivis. What is your name and what do you like to do on weekends?
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area p-4 flex">
+            <input type="text" id="userInput" placeholder="Escreva sua resposta em inglês..." 
+                   class="flex-grow p-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 transition-all outline-none" 
+                   onkeydown="if(event.key === 'Enter') sendMessage()">
+            <button id="sendButton" onclick="sendMessage()" 
+                    class="ml-3 px-6 py-3 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 transition-all shadow-md flex items-center justify-center disabled:opacity-50">
+                <span id="buttonText">Enviar</span>
+                <div id="loadingSpinner" class="loading-spinner hidden"></div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatHistoryDiv = document.getElementById('chatHistory');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        
+        const speechToggle = document.getElementById('speechToggle');
+        let speechEnabled = speechToggle.checked; 
+        
+        // Inicializa o estado de fala
+        speechToggle.addEventListener('change', () => {
+            speechEnabled = speechToggle.checked;
+        });
+
+        // Corrigido para incluir o nome consistente do tutor.
+        let chatHistory = [{
+            role: "model",
+            parts: [{ text: "Hello! Welcome to TALKING ENGLISH. I am your tutor, Mr. Deivis. What is your name and what do you like to do on weekends?" }]
+        }];
+
+        // O prompt foi atualizado para o nome "TALKING ENGLISH"
+        const systemPrompt = "You are a friendly, encouraging, and patient English tutor, the system is called 'TALKING ENGLISH'. Your student is at the A2 (Pre-Intermediate) level. Your goal is to keep the conversation going using simple, clear English structures (Simple Present, Simple Past, basic modals). ONLY use vocabulary and sentence structures appropriate for an A2 learner. Engage the student by asking simple questions about daily life, hobbies, or plans. Never use complex tenses or highly academic vocabulary. Keep your responses short, around 1-2 sentences.";
+        
+        // CORREÇÃO: Chave da API deve ser uma string vazia para ser injetada pelo ambiente.
+        const apiKey = ""; 
+        // CORREÇÃO: Atualizado o modelo para a versão mais recente e estável para texto.
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        // --- Função de Fala (TTS) ---
+        function speakText(text) {
+            // Verifica se a fala está ativada e se o navegador suporta TTS
+            if (!speechEnabled || !('speechSynthesis' in window)) {
+                return;
+            }
+            
+            // Cancela qualquer fala anterior para evitar sobreposição
+            window.speechSynthesis.cancel(); 
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Configurações para voz clara em inglês americano (melhor para A2)
+            utterance.rate = 0.9; // Um pouco mais lento que o padrão
+            utterance.pitch = 1.0; 
+            utterance.lang = 'en-US';
+
+            // Tenta selecionar uma voz masculina em inglês, se disponível (assíncrono)
+            const voices = window.speechSynthesis.getVoices();
+            
+            // Prioriza vozes que têm 'Google', 'Male' ou 'Man' no nome, ou a primeira voz en-US
+            const preferredVoice = voices.find(voice => 
+                voice.lang.startsWith('en') && 
+                (voice.name.includes('Google') || voice.name.includes('Male') || voice.name.includes('Man'))
+            );
+            
+            // Fallback para qualquer voz em inglês se a voz preferida não for encontrada
+            const finalVoice = preferredVoice || voices.find(voice => voice.lang.startsWith('en'));
+
+
+            if (finalVoice) {
+                utterance.voice = finalVoice;
+            } else {
+                // Caso as vozes demorem a carregar, tenta novamente após o evento
+                window.speechSynthesis.onvoiceschanged = () => {
+                    const updatedVoices = window.speechSynthesis.getVoices();
+                    const finalVoiceOnLoad = updatedVoices.find(voice => 
+                        voice.lang.startsWith('en') && 
+                        (voice.name.includes('Google') || voice.name.includes('Male') || voice.name.includes('Man'))
+                    ) || updatedVoices.find(voice => voice.lang.startsWith('en'));
+
+                    if (finalVoiceOnLoad) utterance.voice = finalVoiceOnLoad;
+                    window.speechSynthesis.speak(utterance); // Fala após carregar as vozes
+                };
+            }
+            
+            // Se as vozes já carregaram, fala imediatamente
+            if (voices.length > 0) {
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+
+        /**
+         * Adiciona uma mensagem ao histórico de chat na UI e rola para o final.
+         * @param {string} text - O texto da mensagem.
+         * @param {string} sender - 'user' ou 'ai'.
+         */
+        function appendMessage(text, sender) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : ''}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble ${sender === 'user' ? 'user-message' : 'ai-message'}`;
+            // Usa innerHTML em vez de textContent para renderizar quebras de linha (pode ser útil se a IA enviar formatação básica, mas o prompt system impede a maioria)
+            bubble.textContent = text; 
+            
+            wrapper.appendChild(bubble);
+            chatHistoryDiv.appendChild(wrapper);
+
+            // Rola automaticamente para a última mensagem
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        }
+
+        /**
+         * Envia a mensagem do usuário para a IA.
+         */
+        async function sendMessage() {
+            const userText = userInput.value.trim();
+            if (!userText) return;
+
+            // 1. Mostrar mensagem do usuário na UI e limpar input
+            appendMessage(userText, 'user');
+            userInput.value = '';
+            
+            // 2. Adicionar ao histórico e desabilitar input/botão
+            chatHistory.push({ role: "user", parts: [{ text: userText }] });
+            toggleLoading(true);
+
+            // 3. Preparar o payload para a API
+            const payload = {
+                contents: chatHistory,
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            let response;
+            const maxRetries = 3;
+            let delay = 1000;
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    console.log(`[API] Attempting API call (Retry ${i + 1})`);
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        break; // Sucesso
+                    } else {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                } catch (error) {
+                    // Log silencioso e espera com backoff exponencial
+                    console.warn(`[API] Call failed, retrying in ${delay / 1000}s...`);
+                    if (i === maxRetries - 1) {
+                        console.error("[API] Max retries reached. Failing.");
+                        appendMessage("Desculpe, o sistema TALKING ENGLISH está offline. Tente recarregar.", 'ai');
+                        toggleLoading(false);
+                        return;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Dobra o tempo de espera
+                }
+            }
+            
+            // 4. Processar Resposta
+            try {
+                const result = await response.json();
+                const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (aiText) {
+                    appendMessage(aiText, 'ai');
+                    speakText(aiText); // << CHAMA A FUNÇÃO DE FALA AQUI!
+                    chatHistory.push({ role: "model", parts: [{ text: aiText }] });
+                } else {
+                    appendMessage("Erro: Não recebi uma resposta clara. Tente novamente.", 'ai');
+                }
+            } catch (error) {
+                console.error("Error processing response:", error);
+                appendMessage("Erro no processamento da resposta do servidor.", 'ai');
+            }
+            
+            // 5. Reabilitar input
+            toggleLoading(false);
+        }
+
+        /**
+         * Alterna o estado de carregamento da UI.
+         */
+        function toggleLoading(isLoading) {
+            userInput.disabled = isLoading;
+            sendButton.disabled = isLoading;
+            
+            if (isLoading) {
+                buttonText.textContent = 'Pensando...';
+                loadingSpinner.classList.remove('hidden');
+            } else {
+                buttonText.textContent = 'Enviar';
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+        
+        // Inicializa a fala da mensagem de boas-vindas
+        window.onload = () => {
+            // Dá um pequeno atraso para garantir que a interface de fala esteja pronta
+            setTimeout(() => {
+                const welcomeText = chatHistory[0].parts[0].text;
+                speakText(welcomeText);
+            }, 500);
+        };
+    </script>
+
+</body>
+</html>
